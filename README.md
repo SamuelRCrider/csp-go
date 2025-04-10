@@ -12,28 +12,26 @@ CSP is designed for enterprise use cases where regulatory compliance (HIPAA, GDP
 
 - **Multi-Layered Protection**:
 
-  - **DLP Pattern Scanning**: Built-in detection for emails, SSNs, credit cards, phone numbers, and more
-  - **Content Redaction**: Replace sensitive information with [REDACTED] placeholders
-  - **Content Masking**: Partially mask information while preserving some context
-  - **AES-256 Encryption**: Secure sensitive fields with strong encryption
-  - **Deterministic Tokenization**: Replace values with consistent tokens that can be restored later
+  - **Advanced DLP Scanning**: Enhanced pattern detection with risk categorization (Low, Medium, High, Critical)
+  - **Content Classification**: Automatic categorization by compliance type (PII, Financial, Health, GDPR, Credentials)
+  - **Multiple Protection Actions**: Redaction, masking, AES-256 encryption, and deterministic tokenization
+  - **Data Fingerprinting**: Track and protect high-value data across multiple interactions
+  - **Context-Aware Processing**: Customize security policies based on user roles and context
 
-- **Contextual Security Control**:
+- **MCP Integration**:
 
-  - **Role-Based Rules**: Apply different security policies based on user roles
-  - **Conditional Processing**: Customize data handling based on specific contexts
-  - **Pre-processing**: Sanitize inputs before they reach the LLM
-  - **Post-processing**: Filter LLM outputs to catch leaked or hallucinated sensitive data
+  - **Full MCP Support**: Seamless integration with the Model Context Protocol
+  - **Multi-Provider Compatibility**: Works with any LLM that supports the MCP standard
+  - **Conversation History Support**: Maintain security across multi-turn conversations
+  - **Streaming Support**: Process streaming LLM responses safely
+  - **Auto-Discovery**: Automatically locate MCP servers in the environment
 
-- **Enterprise-Grade Tools**:
-  - **Comprehensive Audit Logging**: JSON-structured logs for compliance and monitoring
-  - **YAML Policy Configuration**: Flexible, human-readable security rules
-  - **LLM Provider Agnostic**: Works with any LLM through MCP integration
-- **Compliance Support**:
-  - **HIPAA**: Protect PHI through redaction and encryption
-  - **GDPR**: Support data minimization and purpose limitation principles
-  - **SOC 2**: Provide access controls and audit trails for security
-  - **PCI DSS**: Shield payment card information from exposure
+- **Enterprise-Grade Security**:
+  - **Rate Limiting**: Configurable request limits with exponential backoff
+  - **SOC 2 Compliance**: Comprehensive controls for security, availability, and confidentiality
+  - **Rich Audit Logging**: Detailed, structured logging with request correlation
+  - **Error Categorization**: Standardized error types for security-related issues
+  - **Request Validation**: Input/output validation with size limits and content restrictions
 
 ## Installation
 
@@ -59,15 +57,39 @@ The included CLI tool provides a quick way to test CSP functionality:
 go run cmd/main.go
 ```
 
-### SDK Integration
+### Basic Usage
 
-Use CSP in your Go applications:
+Simplest way to use CSP:
+
+```go
+import (
+	"fmt"
+	"samcrider/csp"
+)
+
+func main() {
+	// Process text through CSP with default settings
+	output, err := csp.RunCSP("Process this sensitive text containing jane.doe@example.com", "admin")
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("Secure LLM response:", output)
+}
+```
+
+### Advanced Configuration
+
+Use CSP with custom settings:
 
 ```go
 import (
 	"context"
 	"fmt"
+	"os"
 	"samcrider/csp"
+	"samcrider/csp/llm"
+	"time"
 )
 
 func main() {
@@ -83,22 +105,32 @@ func main() {
 		panic(err)
 	}
 
-	// Process text through CSP (for direct content security)
-	result, err := cspHandler.ScanContent(context.Background(),
-		"My email is jane.doe@example.com and SSN is 123-45-6789")
+	// Configure MCP with advanced options
+	mcpConfig := &llm.MCPConfig{
+		ToolName:          "csp.llm.wrap",
+		Model:             "gpt-4-turbo",
+		Temperature:       0.2,
+		MaxTokens:         2000,
+		Timeout:           time.Second * 30,
+		RetryCount:        2,
+		EnableDLP:         true,
+		RateLimitEnabled:  true,
+		RequestsPerMinute: 100,
+		AuditLevel:        "standard",
+	}
+
+	result, err := csp.RunCSPWithConfig(
+		"Process this sensitive text...",
+		"admin",
+		"/path/to/mcp-server",
+		mcpConfig,
+	)
+
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println("Scan results:", result)
-
-	// For LLM interactions, use the simpler RunCSP wrapper
-	output, err := csp.RunCSP("Tell me about jane.doe@example.com", "admin")
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println("Secure LLM response:", output)
+	fmt.Println("Secure LLM response:", result)
 }
 ```
 
@@ -140,9 +172,10 @@ Each rule can specify:
 CSP supports multiple ways to handle sensitive data:
 
 - **Redaction**: `My SSN is 123-45-6789` → `My SSN is [REDACTED:ssn]`
-- **Masking**: `My SSN is 123-45-6789` → `My SSN is [MASKED:ssn]`
+- **Masking**: `My SSN is 123-45-6789` → `My SSN is XXX-XX-6789`
 - **Encryption**: `My SSN is 123-45-6789` → `My SSN is [ENCRYPTED:abcd1234...]`
 - **Tokenization**: `Project Zeus` → `Project @@token_a1b2@@` (with reversible mapping)
+- **Fingerprinting**: Track data by content hash for consistent handling across interactions
 
 ## Audit Logging
 
@@ -151,6 +184,7 @@ CSP generates detailed audit logs for all operations in JSON format:
 ```json
 {
   "timestamp": "2023-05-15T14:22:33Z",
+  "request_id": "csp_req_7f8e9d2c",
   "user_role": "support",
   "input": "My email is jane.doe@example.com",
   "transformed": "My email is [REDACTED:email]",
@@ -160,41 +194,47 @@ CSP generates detailed audit logs for all operations in JSON format:
       "end_index": 32,
       "value": "jane.doe@example.com",
       "type": "email",
-      "action": "redact"
+      "action": "redact",
+      "risk_level": "medium",
+      "compliance_type": "pii"
     }
   ],
   "action_source": "pre-request"
 }
 ```
 
-These logs help demonstrate compliance with security requirements and provide a record of all data transformations.
-
 ## Architecture
 
 CSP follows a modular design with the following components:
 
 ```
-┌─────────────────────────────┐
-│             CSP             │
-├─────────────────────────────┤
-│ ┌─────────┐    ┌─────────┐  │
-│ │  Input  │    │ Output  │  │
-│ │ Scanner │    │ Filter  │  │
-│ └─────────┘    └─────────┘  │
-│ ┌─────────┐    ┌─────────┐  │
-│ │ Redactor│    │ Audit   │  │
-│ │Encryptor│    │ Logger  │  │
-│ └─────────┘    └─────────┘  │
-├─────────────────────────────┤
-│         MCP Adapter         │
-└─────────────────────────────┘
-          │         ▲
-          ▼         │
-┌─────────────────────────────┐
-│      LLM Provider API       │
-│  (OpenAI, Anthropic, etc.)  │
-└─────────────────────────────┘
+┌───────────────────────────────────────────────────┐
+│                       CSP                         │
+├───────────────────────────────────────────────────┤
+│ ┌─────────────┐    ┌─────────────┐ ┌────────────┐ │
+│ │ Input       │    │ Risk        │ │ Output     │ │
+│ │ Processing  │    │ Assessment  │ │ Filtering  │ │
+│ └─────────────┘    └─────────────┘ └────────────┘ │
+│                                                   │
+│ ┌─────────────┐    ┌─────────────┐ ┌────────────┐ │
+│ │ Redaction/  │    │ Rate        │ │ Audit      │ │
+│ │ Encryption  │    │ Limiting    │ │ Logging    │ │
+│ └─────────────┘    └─────────────┘ └────────────┘ │
+├───────────────────────────────────────────────────┤
+│               MCP Integration                     │
+└───────────────────────────────────────────────────┘
+                     │         ▲
+                     ▼         │
+┌───────────────────────────────────────────────────┐
+│               LLM Provider APIs                   │
+│      (OpenAI, Anthropic, Gemini, Azure, etc.)     │
+└───────────────────────────────────────────────────┘
 ```
+
+## Further Documentation
+
+- [MCP Integration Guide](MCP_INTEGRATION.md): Details on integrating with MCP
+- [SOC 2 Compliance](SOC2_COMPLIANCE.md): How CSP helps maintain SOC 2 compliance
 
 ## License
 
@@ -211,4 +251,3 @@ furnished to do so, subject to the following conditions:
 
 The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
-# csp_go
