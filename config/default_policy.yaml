@@ -1,0 +1,12 @@
+rules:
+  - match: "email"
+    type: "regex"
+    pattern: "[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+"
+    action: "redact"
+    conditions:
+      roles: ["support", "guest"]
+
+  - match: "ssn"
+    type: "regex"
+    pattern: "\\b\\d{3}-\\d{2}-\\d{4}\\b"
+    action: "encrypt"
