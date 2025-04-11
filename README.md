@@ -45,7 +45,7 @@ export CSP_ENCRYPTION_KEY="your-32-byte-key-here-for-aes-security"
 
 ## Quick Start
 
-### CLI Testing
+### CLI Testing - outdated
 
 The included CLI tool provides a quick way to test CSP functionality:
 

@@ -107,38 +107,59 @@ Process multi-turn conversations with security applied to each message:
 
 ```go
 import (
-    "github.com/SamuelRCrider/csp-go/core"
-    "github.com/SamuelRCrider/csp-go/llm"
+    "fmt"
+    "github.com/SamuelRCrider/csp-go"
 )
 
 func main() {
-    // Load policy
-    policy, _ := core.LoadPolicy("config/default_policy.yaml")
+    // Create a new conversation
+    conv := csp.NewConversation("user")
 
-    // Create user context
-    ctx := &core.Context{Role: "user"}
+    // Add a system message
+    conv.AddSystemMessage("You are a helpful assistant.")
 
-    // Create adapter
-    adapter, _ := llm.NewCSPMCPAdapter(ctx, "./mcp-server", policy, &llm.MCPConfig{})
-
-    // Create conversation
-    conv := &llm.Conversation{
-        Role: "user",
-        Messages: []llm.Message{
-            {
-                Role:    "system",
-                Content: "You are a helpful assistant.",
-            },
-            {
-                Role:    "user",
-                Content: "Hello, my email is test@example.com",
-            },
-        },
+    // Process first user message
+    response, err := csp.RunCSPConversation(conv, "Hello, my email is test@example.com")
+    if err != nil {
+        fmt.Printf("Error: %v\n", err)
+        return
     }
 
-    // Process next user message in conversation
-    response, err := adapter.ProcessConversation(conv, "Can you tell me more about my email?")
+    fmt.Println("First response:", response)
+
+    // The conversation history is automatically maintained
+    // Add another user message
+    response, err = csp.RunCSPConversation(conv, "Can you tell me more about my email?")
+    if err != nil {
+        fmt.Printf("Error: %v\n", err)
+        return
+    }
+
+    fmt.Println("Second response:", response)
+
+    // With custom configuration
+    mcpConfig := &llm.MCPConfig{
+        Model: "gpt-4",
+        Temperature: 0.3,
+    }
+
+    response, err = csp.RunCSPConversationWithConfig(
+        conv,
+        "Another question...",
+        "", // Use default MCP server
+        mcpConfig,
+    )
 }
+```
+
+You can also process a simple system prompt + user prompt combination:
+
+```go
+response, err := csp.RunCSPSimplePrompt(
+    "You are a helpful assistant. Be concise.",
+    "What is the capital of France?",
+    "user",
+)
 ```
 
 ### Streaming Support
@@ -148,29 +169,41 @@ Process streaming responses with security controls:
 ```go
 import (
     "fmt"
-    "github.com/SamuelRCrider/csp-go/core"
+    "github.com/SamuelRCrider/csp-go"
     "github.com/SamuelRCrider/csp-go/llm"
 )
 
 func main() {
-    // Load policy
-    policy, _ := core.LoadPolicy("config/default_policy.yaml")
-
-    // Create user context
-    ctx := &core.Context{Role: "user"}
-
-    // Create adapter
-    adapter, _ := llm.NewCSPMCPAdapter(ctx, "./mcp-server", policy, &llm.MCPConfig{})
-
-    // Process with streaming
-    err := adapter.ProcessStream("Generate a story", func(chunk string, done bool) error {
+    // Process with streaming using default configuration
+    err := csp.RunCSPStream("Generate a story", "user", func(chunk string, done bool) error {
         fmt.Print(chunk)
+        if done {
+            fmt.Println("\n--- End of response ---")
+        }
         return nil
     })
 
     if err != nil {
         fmt.Printf("Error: %v\n", err)
     }
+
+    // With custom configuration
+    mcpConfig := &llm.MCPConfig{
+        Model: "claude-3-sonnet",
+        Temperature: 0.7,
+        MaxTokens: 2000,
+    }
+
+    err = csp.RunCSPStreamWithConfig(
+        "Generate a longer story",
+        "user",
+        "", // Use default MCP server
+        mcpConfig,
+        func(chunk string, done bool) error {
+            fmt.Print(chunk)
+            return nil
+        },
+    )
 }
 ```
 
@@ -181,20 +214,10 @@ Include custom metadata with requests for tracking and analytics:
 ```go
 import (
     "fmt"
-    "github.com/SamuelRCrider/csp-go/core"
-    "github.com/SamuelRCrider/csp-go/llm"
+    "github.com/SamuelRCrider/csp-go"
 )
 
 func main() {
-    // Load policy
-    policy, _ := core.LoadPolicy("config/default_policy.yaml")
-
-    // Create user context
-    ctx := &core.Context{Role: "user"}
-
-    // Create adapter
-    adapter, _ := llm.NewCSPMCPAdapter(ctx, "./mcp-server", policy, &llm.MCPConfig{})
-
     // Include custom metadata
     metadata := map[string]interface{}{
         "department": "HR",
@@ -202,7 +225,7 @@ func main() {
         "request_source": "mobile_app",
     }
 
-    response, err := adapter.ProcessWithMetadata("Process this text...", metadata)
+    response, err := csp.RunCSPWithMetadata("Process this text...", "user", metadata)
     if err != nil {
         fmt.Printf("Error: %v\n", err)
         return
