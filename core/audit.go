@@ -6,9 +6,10 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"samcrider/csp/utils"
 	"sync"
 	"time"
+
+	"github.com/SamuelRCrider/csp_go/utils"
 )
 
 // AuditLogLevel defines the verbosity of audit logging

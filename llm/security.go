@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strings"
 
-	"samcrider/csp/core"
+	"github.com/SamuelRCrider/csp_go/core"
 )
 
 // DLPScanner implements Data Loss Prevention scanning

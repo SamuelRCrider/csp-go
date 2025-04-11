@@ -37,7 +37,7 @@ CSP is designed for enterprise use cases where regulatory compliance (HIPAA, GDP
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/csp-go
+git clone https://github.com/your-org/csp_go
 cd csp-go
 
 # Install dependencies

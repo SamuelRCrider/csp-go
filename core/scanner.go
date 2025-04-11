@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	"samcrider/csp/utils"
+	"github.com/SamuelRCrider/csp_go/utils"
 )
 
 // ComplianceCategory defines categories for compliance classification

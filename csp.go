@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"samcrider/csp/core"
-	"samcrider/csp/llm"
+	"github.com/SamuelRCrider/csp_go/core"
+	"github.com/SamuelRCrider/csp_go/llm"
 )
 
 // ConfigureMCP configures the MCP server to use for all CSP operations

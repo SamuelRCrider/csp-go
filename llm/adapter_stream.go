@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"samcrider/csp/core"
+	"github.com/SamuelRCrider/csp_go/core"
 
 	"github.com/mark3labs/mcp-go/mcp"
 )

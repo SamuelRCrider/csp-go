@@ -1,4 +1,4 @@
-module samcrider/csp
+module github.com/SamuelRCrider/csp_go
 
 go 1.24.2
 

@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"samcrider/csp"
-	"samcrider/csp/core"
-	"samcrider/csp/llm"
+	csp "github.com/SamuelRCrider/csp_go"
+	"github.com/SamuelRCrider/csp_go/core"
+	"github.com/SamuelRCrider/csp_go/llm"
 )
 
 func main() {

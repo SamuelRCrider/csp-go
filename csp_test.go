@@ -5,8 +5,8 @@ import (
 	"os"
 	"testing"
 
-	"samcrider/csp/core"
-	"samcrider/csp/llm"
+	"github.com/SamuelRCrider/csp_go/core"
+	"github.com/SamuelRCrider/csp_go/llm"
 
 	"github.com/stretchr/testify/assert"
 )
