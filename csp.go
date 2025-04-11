@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/SamuelRCrider/csp_go/core"
-	"github.com/SamuelRCrider/csp_go/llm"
+	"github.com/SamuelRCrider/csp-go/core"
+	"github.com/SamuelRCrider/csp-go/llm"
 )
 
-// ConfigureMCP configures the MCP server to use for all CSP operations
+// ConfigureMCPServer configures the MCP server to use for all CSP operations
 // It can be called once at startup to set the MCP server details
-func ConfigureMCP(serverPath string) {
+func ConfigureMCPServer(serverPath string) {
 	os.Setenv("MCP_SERVER_PATH", serverPath)
 }
 

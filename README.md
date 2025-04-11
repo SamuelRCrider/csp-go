@@ -36,14 +36,10 @@ CSP is designed for enterprise use cases where regulatory compliance (HIPAA, GDP
 ## Installation
 
 ```bash
-# Clone the repository
-git clone https://github.com/your-org/csp_go
-cd csp-go
+# Install the CSP SDK using go get
+go get github.com/SamuelRCrider/csp-go
 
-# Install dependencies
-go mod tidy
-
-# Set mandatory encryption key (32 bytes for AES-256)
+# Set mandatory encryption key (32 bytes for AES-256) in your environment
 export CSP_ENCRYPTION_KEY="your-32-byte-key-here-for-aes-security"
 ```
 
@@ -54,27 +50,35 @@ export CSP_ENCRYPTION_KEY="your-32-byte-key-here-for-aes-security"
 The included CLI tool provides a quick way to test CSP functionality:
 
 ```bash
+# Clone the repository to access the CLI tool
+git clone https://github.com/SamuelRCrider/csp-go
+cd csp-go
+
+# Run the basic CLI demo
 go run cmd/main.go
 ```
 
 ### Basic Usage
 
-Simplest way to use CSP:
+Simplest way to use CSP in your application:
 
 ```go
+package main
+
 import (
 	"fmt"
-	"samcrider/csp"
+	"github.com/SamuelRCrider/csp-go"
 )
 
 func main() {
 	// Process text through CSP with default settings
+	// This will auto-discover the MCP server
 	output, err := csp.RunCSP("Process this sensitive text containing jane.doe@example.com", "admin")
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println("Secure LLM response:", output)
+	fmt.Println("Secure output:", output)
 }
 ```
 
@@ -83,27 +87,19 @@ func main() {
 Use CSP with custom settings:
 
 ```go
+package main
+
 import (
-	"context"
 	"fmt"
-	"os"
-	"samcrider/csp"
-	"samcrider/csp/llm"
 	"time"
+	"github.com/SamuelRCrider/csp-go"
+	"github.com/SamuelRCrider/csp-go/llm"
 )
 
 func main() {
-	// Initialize CSP with options
-	options := csp.Options{
-		PolicyPath:    "config/default_policy.yaml",
-		EncryptionKey: []byte(os.Getenv("CSP_ENCRYPTION_KEY")),
-		AuditEnabled:  true,
-	}
-
-	cspHandler, err := csp.New(options)
-	if err != nil {
-		panic(err)
-	}
+	// Configure global MCP server (optional)
+	// This sets the MCP_SERVER_PATH environment variable for later use
+	csp.ConfigureMCPServer("/path/to/mcp-server")
 
 	// Configure MCP with advanced options
 	mcpConfig := &llm.MCPConfig{
@@ -122,7 +118,7 @@ func main() {
 	result, err := csp.RunCSPWithConfig(
 		"Process this sensitive text...",
 		"admin",
-		"/path/to/mcp-server",
+		"/path/to/mcp-server", // Can also be "" to use globally configured server or auto-discovery
 		mcpConfig,
 	)
 
@@ -130,7 +126,46 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println("Secure LLM response:", result)
+	fmt.Println("Secure output:", result)
+}
+```
+
+### Direct Policy Usage
+
+For applications that need to apply security policies without LLM integration:
+
+```go
+package main
+
+import (
+	"fmt"
+	"github.com/SamuelRCrider/csp-go/core"
+)
+
+func main() {
+	// Load policy from file
+	policy, err := core.LoadPolicy("config/default_policy.yaml")
+	if err != nil {
+		panic(err)
+	}
+
+	// Or create a policy programmatically
+	builder := core.NewPolicyBuilder()
+	customPolicy := builder.
+		WithMetadata("1.0.0", "Custom Policy", "My App").
+		AddRule("ssn", "ssn", "regex", `\d{3}-\d{2}-\d{4}`, core.ActionRedact).
+		AddRule("credit_card", "credit_card", "regex", `\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b`, core.ActionMask).
+		Build()
+
+	// Sample input with sensitive data
+	input := "My SSN is 123-45-6789 and my credit card is 4111-1111-1111-1111"
+
+	// Apply security policy
+	matches := core.ScanText(input, customPolicy)
+	secured := core.ApplyRedactions(input, matches)
+
+	fmt.Println("Original:", input)
+	fmt.Println("Secured:", secured)
 }
 ```
 

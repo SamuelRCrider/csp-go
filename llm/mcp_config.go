@@ -68,7 +68,7 @@ func DiscoverMCPServers() ([]MCPServerConfig, error) {
 
 	// 3. Parse MCP_SERVERS environment variable (comma-separated list)
 	if serverList := os.Getenv("MCP_SERVERS"); serverList != "" {
-		for _, server := range strings.Split(serverList, ",") {
+		for server := range strings.SplitSeq(serverList, ",") {
 			server = strings.TrimSpace(server)
 			if strings.HasPrefix(server, "http://") || strings.HasPrefix(server, "https://") {
 				servers = append(servers, MCPServerConfig{

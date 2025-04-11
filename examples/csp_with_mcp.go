@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"time"
 
-	csp "github.com/SamuelRCrider/csp_go"
-	"github.com/SamuelRCrider/csp_go/core"
-	"github.com/SamuelRCrider/csp_go/llm"
+	csp "github.com/SamuelRCrider/csp-go"
+	"github.com/SamuelRCrider/csp-go/core"
+	"github.com/SamuelRCrider/csp-go/llm"
 )
 
 func main() {
@@ -49,7 +49,7 @@ func main() {
 
 	// Example 1: Configure MCP server globally
 	fmt.Println("Example 1: Using global MCP configuration")
-	csp.ConfigureMCP(mcpServerPath)
+	csp.ConfigureMCPServer(mcpServerPath)
 
 	result1, err := csp.RunCSP("Hello, my name is John Smith and my email is john.smith@example.com", "user")
 	if err != nil {

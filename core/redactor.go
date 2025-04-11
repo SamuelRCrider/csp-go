@@ -4,7 +4,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/SamuelRCrider/csp_go/utils"
+	"github.com/SamuelRCrider/csp-go/utils"
 )
 
 func ApplyRedactions(text string, matches []utils.MatchResult) string {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/SamuelRCrider/csp_go/core"
+	"github.com/SamuelRCrider/csp-go/core"
 )
 
 func main() {

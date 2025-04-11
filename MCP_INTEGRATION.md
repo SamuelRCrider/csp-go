@@ -20,11 +20,11 @@ The Model Context Protocol (MCP) provides a standardized way for applications to
 Set the MCP server path once at the beginning of your application:
 
 ```go
-import "samcrider/csp"
+import "github.com/SamuelRCrider/csp-go"
 
 func init() {
     // Configure the MCP server globally
-    csp.ConfigureMCP("/path/to/mcp-server")
+    csp.ConfigureMCPServer("/path/to/mcp-server")
 }
 ```
 
@@ -50,8 +50,8 @@ Provide MCP configuration directly when calling the SDK:
 
 ```go
 import (
-    "samcrider/csp"
-    "samcrider/csp/llm"
+    "github.com/SamuelRCrider/csp-go"
+    "github.com/SamuelRCrider/csp-go/llm"
     "time"
 )
 
@@ -68,11 +68,11 @@ func main() {
         RateLimitEnabled:  true,
         RequestsPerMinute: 100,
         AuditLevel:        "standard",
-        RequestValidation: ValidationConfig{
+        RequestValidation: llm.ValidationConfig{
             Enabled:   true,
             MaxLength: 16384,  // 16KB
         },
-        ResponseValidation: ValidationConfig{
+        ResponseValidation: llm.ValidationConfig{
             Enabled:   true,
             MaxLength: 65536,  // 64KB
         },
@@ -81,7 +81,7 @@ func main() {
     result, err := csp.RunCSPWithConfig(
         "Process this text...",
         "user",
-        "/path/to/mcp-server",
+        "/path/to/mcp-server", // or "" to use globally configured server or auto-discovery
         mcpConfig,
     )
 }
@@ -107,12 +107,19 @@ Process multi-turn conversations with security applied to each message:
 
 ```go
 import (
-    "samcrider/csp/llm"
+    "github.com/SamuelRCrider/csp-go/core"
+    "github.com/SamuelRCrider/csp-go/llm"
 )
 
 func main() {
+    // Load policy
+    policy, _ := core.LoadPolicy("config/default_policy.yaml")
+
+    // Create user context
+    ctx := &core.Context{Role: "user"}
+
     // Create adapter
-    adapter, _ := llm.NewCSPMCPAdapter(ctx, "./mcp-server", policy, config)
+    adapter, _ := llm.NewCSPMCPAdapter(ctx, "./mcp-server", policy, &llm.MCPConfig{})
 
     // Create conversation
     conv := &llm.Conversation{
@@ -140,40 +147,29 @@ Process streaming responses with security controls:
 
 ```go
 import (
-    "context"
     "fmt"
-    "samcrider/csp/llm"
+    "github.com/SamuelRCrider/csp-go/core"
+    "github.com/SamuelRCrider/csp-go/llm"
 )
 
 func main() {
+    // Load policy
+    policy, _ := core.LoadPolicy("config/default_policy.yaml")
+
+    // Create user context
+    ctx := &core.Context{Role: "user"}
+
     // Create adapter
-    adapter, _ := llm.NewCSPMCPAdapter(ctx, "./mcp-server", policy, config)
+    adapter, _ := llm.NewCSPMCPAdapter(ctx, "./mcp-server", policy, &llm.MCPConfig{})
 
-    // Create a channel for receiving streamed chunks
-    stream := make(chan string)
-    errChan := make(chan error)
+    // Process with streaming
+    err := adapter.ProcessStream("Generate a story", func(chunk string, done bool) error {
+        fmt.Print(chunk)
+        return nil
+    })
 
-    // Start streaming in background
-    go func() {
-        err := adapter.ProcessStream("Generate a story", stream)
-        if err != nil {
-            errChan <- err
-        }
-        close(stream)
-    }()
-
-    // Process streamed chunks
-    for {
-        select {
-        case chunk, ok := <-stream:
-            if !ok {
-                return // Stream closed
-            }
-            fmt.Print(chunk)
-        case err := <-errChan:
-            fmt.Printf("Error: %v\n", err)
-            return
-        }
+    if err != nil {
+        fmt.Printf("Error: %v\n", err)
     }
 }
 ```
@@ -183,8 +179,21 @@ func main() {
 Include custom metadata with requests for tracking and analytics:
 
 ```go
+import (
+    "fmt"
+    "github.com/SamuelRCrider/csp-go/core"
+    "github.com/SamuelRCrider/csp-go/llm"
+)
+
 func main() {
-    adapter, _ := llm.NewCSPMCPAdapter(ctx, "./mcp-server", policy, config)
+    // Load policy
+    policy, _ := core.LoadPolicy("config/default_policy.yaml")
+
+    // Create user context
+    ctx := &core.Context{Role: "user"}
+
+    // Create adapter
+    adapter, _ := llm.NewCSPMCPAdapter(ctx, "./mcp-server", policy, &llm.MCPConfig{})
 
     // Include custom metadata
     metadata := map[string]interface{}{
@@ -194,6 +203,12 @@ func main() {
     }
 
     response, err := adapter.ProcessWithMetadata("Process this text...", metadata)
+    if err != nil {
+        fmt.Printf("Error: %v\n", err)
+        return
+    }
+
+    fmt.Println("Response:", response)
 }
 ```
 
@@ -225,13 +240,13 @@ package main
 
 import (
     "fmt"
-    "samcrider/csp"
-    "samcrider/csp/llm"
+    "github.com/SamuelRCrider/csp-go"
+    "github.com/SamuelRCrider/csp-go/llm"
 )
 
 func main() {
-    // Configure MCP server
-    csp.ConfigureMCP("./mcp-server")
+    // Configure MCP server globally
+    csp.ConfigureMCPServer("./mcp-server")
 
     // Set up custom MCP configuration
     mcpConfig := &llm.MCPConfig{
@@ -241,7 +256,7 @@ func main() {
         AuditLevel:    "standard",
     }
 
-    // Process text with CSP
+    // Process text with CSP (using empty string for server path to use the globally configured one)
     input := "My name is John Smith and my email is john.smith@example.com"
     result, err := csp.RunCSPWithConfig(input, "user", "", mcpConfig)
     if err != nil {
@@ -249,7 +264,7 @@ func main() {
         return
     }
 
-    fmt.Printf("Result: %s\n", result)
+    fmt.Println("Secure output:", result)
 }
 ```
 

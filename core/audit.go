@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/SamuelRCrider/csp_go/utils"
+	"github.com/SamuelRCrider/csp-go/utils"
 )
 
 // AuditLogLevel defines the verbosity of audit logging

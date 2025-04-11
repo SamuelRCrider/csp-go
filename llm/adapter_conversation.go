@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/SamuelRCrider/csp_go/core"
+	"github.com/SamuelRCrider/csp-go/core"
 
 	"github.com/mark3labs/mcp-go/mcp"
 )
